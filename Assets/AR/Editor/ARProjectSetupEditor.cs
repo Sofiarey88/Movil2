@@ -478,7 +478,7 @@ namespace ARMobileLab.Editor
             GameObject webcamBtnGo = CreateUIButton(canvasGo.transform, "WebCamConnectButton",
                 new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(1f, 1f),
                 new Vector2(-220f, -90f), new Vector2(210f, 90f),
-                "📷 WebCam\n(iOS / PC)", 22, new Color(0.08f, 0.45f, 0.55f, 0.95f), font);
+                "CAM: WebCam\n(iOS / PC)", 22, new Color(0.08f, 0.45f, 0.55f, 0.95f), font);
 
             // --- 4. BOTÓN DE AYUDA (TOP-RIGHT) ---
             GameObject helpBtnGo = CreateUIButton(canvasGo.transform, "HelpOpenButton",

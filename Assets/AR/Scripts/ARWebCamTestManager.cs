@@ -1,13 +1,18 @@
+using System;
 using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+#endif
 
 namespace ARMobileLab
 {
     /// <summary>
-    /// Sistema de conexión con WebCam (cámaras de PC o iPhone conectado por Wi-Fi mediante Iriun, EpocCam, DroidCam, etc.)
+    /// Sistema de conexión con WebCam (cámaras de PC o iPhone conectado por Wi-Fi mediante Iriun, EpocCam, Camo, etc.)
     /// y simulador de Image Tracking interactivo para pruebas en Unity Editor sin necesidad de compilar a móvil cada vez.
+    /// Compatible al 100% con el nuevo Input System Package de Unity.
     /// </summary>
     public class ARWebCamTestManager : MonoBehaviour
     {
@@ -29,8 +34,9 @@ namespace ARMobileLab
         [SerializeField] private TMP_Text dragButtonText;
 
         private WebCamTexture webcamTexture;
-        private GameObject backgroundQuad;
-        private Material quadMaterial;
+        private GameObject bgCanvasGo;
+        private RawImage bgRawImage;
+        private UnityEngine.XR.ARFoundation.ARCameraBackground cachedArCamBg;
         private int currentDeviceIndex = -1;
         private bool isDraggingWithMouse = false;
         private string lastSimulatedTarget = string.Empty;
@@ -49,11 +55,17 @@ namespace ARMobileLab
                 arCamera = Camera.main;
             }
 
+            if (arCamera != null)
+            {
+                cachedArCamBg = arCamera.GetComponent<UnityEngine.XR.ARFoundation.ARCameraBackground>();
+            }
+
             SetupUI();
         }
 
         private void Start()
         {
+            LogAvailableCameras();
             UpdateWebCamButtonLabel();
 
             // En el editor de Unity, mostrar la barra de simulación para pruebas inmediatas
@@ -93,35 +105,58 @@ namespace ARMobileLab
             }
         }
 
+        private void LogAvailableCameras()
+        {
+            WebCamDevice[] devices = WebCamTexture.devices;
+            if (devices == null || devices.Length == 0)
+            {
+                Debug.LogWarning("[AR WebCam] No se detectaron cámaras en Windows. Si vas a usar tu iPhone por Wi-Fi, abre la app Iriun Webcam o EpocCam en el teléfono.");
+                return;
+            }
+
+            Debug.Log($"[AR WebCam] Se encontraron {devices.Length} cámaras disponibles en el sistema:");
+            for (int i = 0; i < devices.Length; i++)
+            {
+                Debug.Log($"   [{i}] {devices[i].name} (Frontal: {devices[i].isFrontFacing})");
+            }
+        }
+
         private void Update()
         {
-            // Atajos de teclado en el Editor
-            #if UNITY_EDITOR || UNITY_STANDALONE
-            if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1))
+            // Atajos de teclado utilizando el New Input System
+            #if ENABLE_INPUT_SYSTEM
+            var keyboard = Keyboard.current;
+            var mouse = Mouse.current;
+
+            if (keyboard != null)
             {
-                TriggerSimulation("Target_Alpha");
-            }
-            else if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2))
-            {
-                TriggerSimulation("Target_Beta");
-            }
-            else if (Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3))
-            {
-                TriggerSimulateLost();
-            }
-            else if (Input.GetKeyDown(KeyCode.C))
-            {
-                OnWebCamButtonClicked();
-            }
-            else if (Input.GetKeyDown(KeyCode.M))
-            {
-                ToggleMouseDrag();
+                if (keyboard.digit1Key.wasPressedThisFrame || keyboard.numpad1Key.wasPressedThisFrame)
+                {
+                    TriggerSimulation("Target_Alpha");
+                }
+                else if (keyboard.digit2Key.wasPressedThisFrame || keyboard.numpad2Key.wasPressedThisFrame)
+                {
+                    TriggerSimulation("Target_Beta");
+                }
+                else if (keyboard.digit3Key.wasPressedThisFrame || keyboard.numpad3Key.wasPressedThisFrame)
+                {
+                    TriggerSimulateLost();
+                }
+                else if (keyboard.cKey.wasPressedThisFrame)
+                {
+                    OnWebCamButtonClicked();
+                }
+                else if (keyboard.mKey.wasPressedThisFrame)
+                {
+                    ToggleMouseDrag();
+                }
             }
 
             // Arrastre con el mouse para posicionar el holograma sobre el papel en el video de la cámara
-            if (isDraggingWithMouse && Input.GetMouseButton(0) && arCamera != null)
+            if (isDraggingWithMouse && mouse != null && mouse.leftButton.isPressed && arCamera != null)
             {
-                Ray ray = arCamera.ScreenPointToRay(Input.mousePosition);
+                Vector2 mousePos = mouse.position.ReadValue();
+                Ray ray = arCamera.ScreenPointToRay(mousePos);
                 Vector3 newPos = ray.GetPoint(0.55f); // a 55 cm de la cámara
                 if (targetManager != null)
                 {
@@ -130,8 +165,8 @@ namespace ARMobileLab
             }
             #endif
 
-            // Mantener el Quad de fondo ajustado al aspecto de la cámara
-            UpdateBackgroundQuadTransform();
+            // Ajustar orientación y aspect ratio de la imagen de la cámara si está activa
+            UpdateBackgroundRawImageTransform();
         }
 
         // ==========================================
@@ -144,10 +179,10 @@ namespace ARMobileLab
 
             if (devices == null || devices.Length == 0)
             {
-                Debug.LogWarning("[AR WebCam] No se detectaron cámaras en el sistema. Si usas iPhone por Wi-Fi, inicia la app Iriun o EpocCam en el teléfono.");
+                Debug.LogWarning("[AR WebCam] No se detectaron cámaras en el sistema. Asegúrate de instalar y abrir Iriun Webcam (o EpocCam) en tu iPhone y PC conectados al mismo Wi-Fi.");
                 if (webcamButtonText != null)
                 {
-                    webcamButtonText.text = "📷 Sin Cámaras\n(Instalar Iriun)";
+                    webcamButtonText.text = "CAM: Sin Camara\n(Abrir Iriun)";
                 }
                 return;
             }
@@ -167,8 +202,19 @@ namespace ARMobileLab
             }
             else
             {
-                // Iniciar la primera cámara
+                // Buscar si hay alguna cámara de iPhone conectada (Iriun, EpocCam, Camo)
                 currentDeviceIndex = 0;
+                for (int i = 0; i < devices.Length; i++)
+                {
+                    string dName = devices[i].name;
+                    if (dName.IndexOf("iriun", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        dName.IndexOf("epoc", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        dName.IndexOf("camo", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        currentDeviceIndex = i;
+                        break;
+                    }
+                }
             }
 
             StartWebCamDevice(devices[currentDeviceIndex].name);
@@ -180,12 +226,23 @@ namespace ARMobileLab
 
             try
             {
+                // Iniciar la textura de la cámara web
                 webcamTexture = new WebCamTexture(deviceName, 1280, 720, 30);
                 webcamTexture.Play();
 
-                CreateOrUpdateBackgroundQuad();
+                // Desactivar temporalmente ARCameraBackground para que no opaque el video en el Editor
+                if (cachedArCamBg == null && arCamera != null)
+                {
+                    cachedArCamBg = arCamera.GetComponent<UnityEngine.XR.ARFoundation.ARCameraBackground>();
+                }
+                if (cachedArCamBg != null)
+                {
+                    cachedArCamBg.enabled = false;
+                }
 
-                Debug.Log($"[AR WebCam] ✓ Conectado a cámara: {deviceName}");
+                CreateOrUpdateBackgroundCanvas();
+
+                Debug.Log($"[AR WebCam] ✓ Conectado exitosamente a la cámara: {deviceName}");
                 UpdateWebCamButtonLabel();
 
                 if (simulationToolbar != null)
@@ -193,7 +250,7 @@ namespace ARMobileLab
                     simulationToolbar.SetActive(true);
                 }
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 Debug.LogError($"[AR WebCam] Error al conectar con cámara {deviceName}: {ex.Message}");
             }
@@ -208,82 +265,85 @@ namespace ARMobileLab
                 webcamTexture = null;
             }
 
-            if (backgroundQuad != null)
+            if (bgCanvasGo != null)
             {
-                backgroundQuad.SetActive(false);
+                bgCanvasGo.SetActive(false);
+            }
+
+            // Reactivar ARCameraBackground
+            if (cachedArCamBg != null)
+            {
+                cachedArCamBg.enabled = true;
             }
 
             UpdateWebCamButtonLabel();
         }
 
-        private void CreateOrUpdateBackgroundQuad()
+        private void CreateOrUpdateBackgroundCanvas()
         {
             if (arCamera == null) arCamera = Camera.main;
             if (arCamera == null) return;
 
-            if (backgroundQuad == null)
+            if (bgCanvasGo == null)
             {
-                backgroundQuad = GameObject.CreatePrimitive(PrimitiveType.Quad);
-                backgroundQuad.name = "WebCam_LiveFeed_Background";
-                backgroundQuad.transform.SetParent(arCamera.transform, false);
+                bgCanvasGo = new GameObject("WebCam_Background_Canvas");
+                Canvas c = bgCanvasGo.AddComponent<Canvas>();
+                c.renderMode = RenderMode.ScreenSpaceCamera;
+                c.worldCamera = arCamera;
+                c.planeDistance = 5.0f; // Detrás de los objetos 3D (que están a 0.55m)
+                c.sortingOrder = -100;  // Detrás de todo el HUD
 
-                var collider = backgroundQuad.GetComponent<Collider>();
-                if (collider != null) Destroy(collider);
+                bgCanvasGo.AddComponent<CanvasScaler>();
 
-                Shader shader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Texture");
-                quadMaterial = new Material(shader);
-                backgroundQuad.GetComponent<Renderer>().material = quadMaterial;
+                GameObject rawGo = new GameObject("WebCam_RawImage", typeof(RectTransform), typeof(RawImage));
+                rawGo.transform.SetParent(bgCanvasGo.transform, false);
+
+                RectTransform rt = rawGo.GetComponent<RectTransform>();
+                rt.anchorMin = Vector2.zero;
+                rt.anchorMax = Vector2.one;
+                rt.pivot = new Vector2(0.5f, 0.5f);
+                rt.sizeDelta = Vector2.zero;
+
+                bgRawImage = rawGo.GetComponent<RawImage>();
             }
 
-            backgroundQuad.SetActive(true);
+            bgCanvasGo.SetActive(true);
 
-            if (quadMaterial != null && webcamTexture != null)
+            if (bgRawImage != null && webcamTexture != null)
             {
-                quadMaterial.mainTexture = webcamTexture;
-                if (quadMaterial.HasProperty("_BaseMap"))
-                {
-                    quadMaterial.SetTexture("_BaseMap", webcamTexture);
-                }
+                bgRawImage.texture = webcamTexture;
             }
 
-            UpdateBackgroundQuadTransform();
+            UpdateBackgroundRawImageTransform();
         }
 
-        private void UpdateBackgroundQuadTransform()
+        private void UpdateBackgroundRawImageTransform()
         {
-            if (backgroundQuad == null || !backgroundQuad.activeSelf || arCamera == null)
+            if (bgRawImage == null || webcamTexture == null || !webcamTexture.isPlaying)
                 return;
 
-            float distance = 2.0f; // Detrás de los objetos 3D (que están a 0.5m)
-            backgroundQuad.transform.localPosition = new Vector3(0f, 0f, distance);
-            backgroundQuad.transform.localRotation = Quaternion.identity;
+            // Inversión vertical si la webcam viene invertida
+            float scaleY = webcamTexture.videoVerticallyMirrored ? -1f : 1f;
+            bgRawImage.transform.localScale = new Vector3(1f, scaleY, 1f);
 
-            float frustumHeight = 2.0f * distance * Mathf.Tan(arCamera.fieldOfView * 0.5f * Mathf.Deg2Rad);
-            float frustumWidth = frustumHeight * arCamera.aspect;
-
-            // Invertir verticalmente si la webcam lo requiere
-            float scaleY = frustumHeight;
-            if (webcamTexture != null && webcamTexture.videoVerticallyMirrored)
-            {
-                scaleY = -frustumHeight;
-            }
-
-            backgroundQuad.transform.localScale = new Vector3(frustumWidth, scaleY, 1f);
+            // Ajustar rotación si el celular está rotado
+            int angle = webcamTexture.videoRotationAngle;
+            bgRawImage.transform.localEulerAngles = new Vector3(0f, 0f, -angle);
         }
 
         private void UpdateWebCamButtonLabel()
         {
             if (webcamButtonText == null) return;
 
-            if (IsWebCamPlaying)
+            if (IsWebCamPlaying && webcamTexture != null)
             {
                 string devName = webcamTexture.deviceName;
-                if (devName.Length > 12) devName = devName.Substring(0, 10) + "..";
-                webcamButtonText.text = $"📷 {devName}\n(Conectada)";
+                if (devName.Length > 10) devName = devName.Substring(0, 9) + "..";
+                webcamButtonText.text = $"CAM: {devName}\n(Activa)";
             }
             else
             {
-                webcamButtonText.text = "📷 WebCam\n(iOS / PC)";
+                webcamButtonText.text = "CAM: WebCam\n(iOS / PC)";
             }
         }
 
@@ -325,9 +385,9 @@ namespace ARMobileLab
         private void OnDestroy()
         {
             StopWebCam();
-            if (backgroundQuad != null)
+            if (bgCanvasGo != null)
             {
-                Destroy(backgroundQuad);
+                Destroy(bgCanvasGo);
             }
         }
     }
