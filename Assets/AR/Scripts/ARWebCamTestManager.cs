@@ -10,8 +10,8 @@ using UnityEngine.InputSystem;
 namespace ARMobileLab
 {
     /// <summary>
-    /// Sistema de conexión con WebCam (cámaras de PC o iPhone conectado por Wi-Fi mediante Iriun, EpocCam, Camo, etc.)
-    /// y simulador de Image Tracking interactivo para pruebas en Unity Editor sin necesidad de compilar a móvil cada vez.
+    /// Sistema de activación y desactivación con 1 solo clic de Iriun Webcam (cámara de iPhone conectada por Wi-Fi)
+    /// y simulador de Image Tracking interactivo para pruebas en Unity Editor.
     /// Compatible al 100% con el nuevo Input System Package de Unity.
     /// </summary>
     public class ARWebCamTestManager : MonoBehaviour
@@ -21,7 +21,7 @@ namespace ARMobileLab
         [SerializeField] private Camera arCamera;
         [SerializeField] private Canvas canvas;
 
-        [Header("Botón de Conexión WebCam en UI")]
+        [Header("Botón de Activación / Desactivación Iriun")]
         [SerializeField] private Button webcamToggleButton;
         [SerializeField] private TMP_Text webcamButtonText;
 
@@ -37,7 +37,6 @@ namespace ARMobileLab
         private GameObject bgCanvasGo;
         private RawImage bgRawImage;
         private UnityEngine.XR.ARFoundation.ARCameraBackground cachedArCamBg;
-        private int currentDeviceIndex = -1;
         private bool isDraggingWithMouse = false;
         private string lastSimulatedTarget = string.Empty;
 
@@ -110,7 +109,7 @@ namespace ARMobileLab
             WebCamDevice[] devices = WebCamTexture.devices;
             if (devices == null || devices.Length == 0)
             {
-                Debug.LogWarning("[AR WebCam] No se detectaron cámaras en Windows. Si vas a usar tu iPhone por Wi-Fi, abre la app Iriun Webcam o EpocCam en el teléfono.");
+                Debug.LogWarning("[AR WebCam] No se detectaron cámaras en Windows. Abre la app Iriun Webcam en tu iPhone y PC conectados al mismo Wi-Fi.");
                 return;
             }
 
@@ -142,7 +141,7 @@ namespace ARMobileLab
                 {
                     TriggerSimulateLost();
                 }
-                else if (keyboard.cKey.wasPressedThisFrame)
+                else if (keyboard.cKey.wasPressedThisFrame || keyboard.iKey.wasPressedThisFrame)
                 {
                     OnWebCamButtonClicked();
                 }
@@ -170,54 +169,66 @@ namespace ARMobileLab
         }
 
         // ==========================================
-        // GESTIÓN DE WEBCAM (PC / iOS VÍA WI-FI)
+        // BOTÓN: ACTIVAR / DESACTIVAR IRIUN WEBCAM
         // ==========================================
 
         public void OnWebCamButtonClicked()
         {
+            // 1. Si la cámara ya está activa -> DESACTIVAR
+            if (IsWebCamPlaying)
+            {
+                StopWebCam();
+                Debug.Log("[AR WebCam] Iriun Webcam desactivada por el usuario.");
+                return;
+            }
+
+            // 2. Si está apagada -> ACTIVAR IRIUN
             WebCamDevice[] devices = WebCamTexture.devices;
 
             if (devices == null || devices.Length == 0)
             {
-                Debug.LogWarning("[AR WebCam] No se detectaron cámaras en el sistema. Asegúrate de instalar y abrir Iriun Webcam (o EpocCam) en tu iPhone y PC conectados al mismo Wi-Fi.");
+                Debug.LogWarning("[AR WebCam] No se detectó ninguna cámara en Windows. Asegúrate de tener Iriun Webcam instalado en tu PC y abierto en tu iPhone conectados al mismo Wi-Fi.");
                 if (webcamButtonText != null)
                 {
-                    webcamButtonText.text = "CAM: Sin Camara\n(Abrir Iriun)";
+                    webcamButtonText.text = "Iriun: No Detectada\n(Abrir en iPhone)";
+                }
+                if (webcamToggleButton != null)
+                {
+                    webcamToggleButton.image.color = new Color(0.85f, 0.45f, 0.05f, 0.95f);
                 }
                 return;
             }
 
-            // Si ya está reproduciendo, cambiar a la siguiente cámara o apagar si llegó al final
-            if (IsWebCamPlaying)
+            // Buscar prioritariamente la cámara de Iriun
+            string targetDevice = devices[0].name;
+            bool foundIriun = false;
+
+            for (int i = 0; i < devices.Length; i++)
             {
-                currentDeviceIndex++;
-                if (currentDeviceIndex >= devices.Length)
+                if (devices[i].name.IndexOf("iriun", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
-                    // Apagar
-                    StopWebCam();
-                    currentDeviceIndex = -1;
-                    UpdateWebCamButtonLabel();
-                    return;
+                    targetDevice = devices[i].name;
+                    foundIriun = true;
+                    break;
                 }
             }
-            else
+
+            // Si no tiene 'iriun' en el nombre pero hay EpocCam o Camo
+            if (!foundIriun)
             {
-                // Buscar si hay alguna cámara de iPhone conectada (Iriun, EpocCam, Camo)
-                currentDeviceIndex = 0;
                 for (int i = 0; i < devices.Length; i++)
                 {
                     string dName = devices[i].name;
-                    if (dName.IndexOf("iriun", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                        dName.IndexOf("epoc", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    if (dName.IndexOf("epoc", StringComparison.OrdinalIgnoreCase) >= 0 ||
                         dName.IndexOf("camo", StringComparison.OrdinalIgnoreCase) >= 0)
                     {
-                        currentDeviceIndex = i;
+                        targetDevice = dName;
                         break;
                     }
                 }
             }
 
-            StartWebCamDevice(devices[currentDeviceIndex].name);
+            StartWebCamDevice(targetDevice);
         }
 
         private void StartWebCamDevice(string deviceName)
@@ -226,7 +237,7 @@ namespace ARMobileLab
 
             try
             {
-                // Iniciar la textura de la cámara web
+                // Iniciar la textura con la resolución de Iriun
                 webcamTexture = new WebCamTexture(deviceName, 1280, 720, 30);
                 webcamTexture.Play();
 
@@ -242,7 +253,7 @@ namespace ARMobileLab
 
                 CreateOrUpdateBackgroundCanvas();
 
-                Debug.Log($"[AR WebCam] ✓ Conectado exitosamente a la cámara: {deviceName}");
+                Debug.Log($"[AR WebCam] ✓ ¡Iriun Webcam '{deviceName}' activada exitosamente!");
                 UpdateWebCamButtonLabel();
 
                 if (simulationToolbar != null)
@@ -252,7 +263,7 @@ namespace ARMobileLab
             }
             catch (Exception ex)
             {
-                Debug.LogError($"[AR WebCam] Error al conectar con cámara {deviceName}: {ex.Message}");
+                Debug.LogError($"[AR WebCam] Error al activar Iriun Webcam ({deviceName}): {ex.Message}");
             }
         }
 
@@ -290,7 +301,7 @@ namespace ARMobileLab
                 Canvas c = bgCanvasGo.AddComponent<Canvas>();
                 c.renderMode = RenderMode.ScreenSpaceCamera;
                 c.worldCamera = arCamera;
-                c.planeDistance = 5.0f; // Detrás de los objetos 3D (que están a 0.55m)
+                c.planeDistance = 5.0f; // Detrás de los hologramas 3D (que están a 0.55m)
                 c.sortingOrder = -100;  // Detrás de todo el HUD
 
                 bgCanvasGo.AddComponent<CanvasScaler>();
@@ -302,7 +313,8 @@ namespace ARMobileLab
                 rt.anchorMin = Vector2.zero;
                 rt.anchorMax = Vector2.one;
                 rt.pivot = new Vector2(0.5f, 0.5f);
-                rt.sizeDelta = Vector2.zero;
+                rt.offsetMin = Vector2.zero;
+                rt.offsetMax = Vector2.zero;
 
                 bgRawImage = rawGo.GetComponent<RawImage>();
             }
@@ -312,6 +324,7 @@ namespace ARMobileLab
             if (bgRawImage != null && webcamTexture != null)
             {
                 bgRawImage.texture = webcamTexture;
+                bgRawImage.color = Color.white;
             }
 
             UpdateBackgroundRawImageTransform();
@@ -333,17 +346,29 @@ namespace ARMobileLab
 
         private void UpdateWebCamButtonLabel()
         {
+            if (webcamToggleButton != null)
+            {
+                if (IsWebCamPlaying && webcamTexture != null)
+                {
+                    // VERDE cuando está ACTIVADA
+                    webcamToggleButton.image.color = new Color(0.05f, 0.65f, 0.35f, 0.95f);
+                }
+                else
+                {
+                    // AZUL / GRIS cuando está APAGADA
+                    webcamToggleButton.image.color = new Color(0.18f, 0.24f, 0.34f, 0.95f);
+                }
+            }
+
             if (webcamButtonText == null) return;
 
             if (IsWebCamPlaying && webcamTexture != null)
             {
-                string devName = webcamTexture.deviceName;
-                if (devName.Length > 10) devName = devName.Substring(0, 9) + "..";
-                webcamButtonText.text = $"CAM: {devName}\n(Activa)";
+                webcamButtonText.text = "Iriun: ON\n[Clic: Apagar]";
             }
             else
             {
-                webcamButtonText.text = "CAM: WebCam\n(iOS / PC)";
+                webcamButtonText.text = "Iriun: OFF\n[Clic: Encender]";
             }
         }
 
