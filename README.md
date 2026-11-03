@@ -70,7 +70,8 @@ Movil/
 │   │   ├── Scripts/
 │   │   │   ├── ARInteractiveObject.cs        # Lógica de manipulación 3D
 │   │   │   ├── ARTrackedImageMultiTargetManager.cs # Gestor AR Foundation 6.x
-│   │   │   └── ARUIManager.cs                # Controlador de UI / HUD táctil
+│   │   │   ├── ARUIManager.cs                # Controlador de UI / HUD táctil
+│   │   │   └── ARWebCamTestManager.cs        # Conector WebCam (iOS Wi-Fi/PC) y Simulador
 │   │   └── TargetsLibrary.asset              # Reference Image Library (2 targets a 0.15m)
 │   ├── Scenes/
 │   │   ├── ImageTargetLab.unity              # Escena principal de la práctica
@@ -95,6 +96,30 @@ Los archivos de imagen para imprimir o visualizar en una segunda pantalla se enc
 2. **Opción Pantalla Móvil/Monitor:** Puedes abrir directamente `PrintableTargets/Target_Alpha.png` o `PrintableTargets/Target_Beta.png` a pantalla completa en otro teléfono o monitor.
 
 > **Consejo de Iluminación:** Evitar reflejos directos en la pantalla o papel. Una iluminación uniforme garantiza un tracking instantáneo y continuo.
+
+---
+
+## 📷 Pruebas en Vivo con WebCam / iPhone por Wi-Fi (Sin Compilar)
+
+Si necesitas probar el funcionamiento de la app y grabar el video directamente en tu computadora utilizando la cámara de tu **iPhone** (conectado por la misma red Wi-Fi) o la webcam de tu PC:
+
+### Cómo Conectar tu iPhone como WebCam por Wi-Fi:
+1. En tu **iPhone**, instala la app gratuita **Iriun 4K Webcam** (desde el App Store) o **EpocCam** / **Camo**.
+2. En tu **PC**, descarga e instala el driver de **Iriun Webcam for Windows** (desde [iriun.com](https://iriun.com/)).
+3. Conecta tanto tu iPhone como tu PC a la **misma red Wi-Fi**.
+4. Abre la app en tu iPhone. Windows detectará automáticamente la cámara de tu iPhone como una webcam estándar (`Iriun Webcam`).
+
+### Cómo Probar en Unity:
+1. En Unity, abre la escena [`Assets/Scenes/ImageTargetLab.unity`](Assets/Scenes/ImageTargetLab.unity).
+2. Presiona el botón **Play ( ▶ )** arriba en Unity.
+3. En la esquina superior derecha, haz clic en el botón **`📷 WebCam (iOS / PC)`** (o presiona la tecla **`C`**):
+   - El fondo de la escena mostrará en vivo el video que transmite tu iPhone.
+4. **Barra de Simulación de Marcadores:**
+   - **`Target Alpha (1)`** (o tecla **`1`**): Instancia el *Cyber Core* 3D flotando frente a la cámara, actualiza el banner a verde e incrementa el contador de Target Alpha.
+   - **`Target Beta (2)`** (o tecla **`2`**): Instancia el *Quantum Beacon* 3D y suma al contador de Beta.
+   - **`Perder (3)`** (o tecla **`3`**): Simula la pérdida de señal/ocultamiento, actualizando el banner de estado a rojo.
+   - **`Mover: ON/OFF (M)`** (o tecla **`M`**): Al activar este modo, puedes hacer clic y arrastrar con el mouse sobre la pantalla para posicionar el objeto 3D exactamente encima del papel impreso enfocado por la cámara.
+5. Puedes usar todos los botones inferiores (`Giro: ON/OFF`, `Zoom + / -`, `Color Modo`, `Reset Pose`) para manipular los objetos en tiempo real y grabar tu video demostrativo.
 
 ---
 

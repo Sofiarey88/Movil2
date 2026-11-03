@@ -58,6 +58,10 @@ namespace ARMobileLab
         private TrackableId lastActiveTrackableId;
         private string currentTrackedTargetName = string.Empty;
 
+        // Soporte para pruebas y simulación en Editor / WebCam
+        private readonly Dictionary<string, GameObject> simulatedInstances = new Dictionary<string, GameObject>(StringComparer.OrdinalIgnoreCase);
+        private GameObject activeSimulatedObject;
+
         public ARUIManager UIManager => uiManager;
         public IReadOnlyDictionary<string, int> DetectionCounts => detectionCounts;
 
@@ -306,6 +310,13 @@ namespace ARMobileLab
 
         private ARInteractiveObject GetCurrentInteractiveObject()
         {
+            if (activeSimulatedObject != null && activeSimulatedObject.activeInHierarchy)
+            {
+                var interactive = activeSimulatedObject.GetComponent<ARInteractiveObject>();
+                if (interactive == null) interactive = activeSimulatedObject.GetComponentInChildren<ARInteractiveObject>();
+                if (interactive != null) return interactive;
+            }
+
             if (interactiveObjects.TryGetValue(lastActiveTrackableId, out var obj) && obj != null)
             {
                 return obj;
@@ -318,6 +329,69 @@ namespace ARMobileLab
                     return item;
             }
             return null;
+        }
+
+        // ==========================================
+        // SIMULACIÓN PARA PRUEBAS (WEBCAM / EDITOR)
+        // ==========================================
+
+        public void SimulateTargetTracking(string imageName, Vector3 worldPosition)
+        {
+            // Ocultar cualquier objeto simulado previo
+            if (activeSimulatedObject != null && activeSimulatedObject.name != imageName)
+            {
+                activeSimulatedObject.SetActive(false);
+            }
+
+            if (!simulatedInstances.TryGetValue(imageName, out GameObject simGo) || simGo == null)
+            {
+                GameObject prefab = FindPrefabForImage(imageName);
+                if (prefab != null)
+                {
+                    simGo = Instantiate(prefab);
+                    simGo.name = $"Simulated_{imageName}";
+                    simulatedInstances[imageName] = simGo;
+                }
+            }
+
+            if (simGo != null)
+            {
+                simGo.transform.position = worldPosition;
+                simGo.SetActive(true);
+                activeSimulatedObject = simGo;
+            }
+
+            currentTrackedTargetName = imageName;
+            RegisterDetection(imageName);
+
+            if (uiManager != null)
+            {
+                string displayName = GetDisplayName(imageName);
+                int count = GetDetectionCount(imageName);
+                uiManager.UpdateStateTracking(displayName, count);
+                uiManager.UpdateCounters(detectionCounts);
+            }
+        }
+
+        public void SimulateTrackingLost()
+        {
+            if (activeSimulatedObject != null)
+            {
+                activeSimulatedObject.SetActive(false);
+            }
+            currentTrackedTargetName = string.Empty;
+            if (uiManager != null)
+            {
+                uiManager.UpdateStateLost();
+            }
+        }
+
+        public void UpdateSimulatedObjectPosition(Vector3 newWorldPosition)
+        {
+            if (activeSimulatedObject != null && activeSimulatedObject.activeInHierarchy)
+            {
+                activeSimulatedObject.transform.position = newWorldPosition;
+            }
         }
 
         public void RotateActiveObject(float degrees)

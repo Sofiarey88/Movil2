@@ -29,9 +29,9 @@ namespace ARMobileLab.Editor
 
         private static void AutoSetupIfNeeded()
         {
-            if (GameObject.Find("[EDITOR_PREVIEW_TARGETS]") == null)
+            if (!System.IO.File.Exists(ScenePath) || !System.IO.File.Exists(LibraryPath))
             {
-                Debug.Log("[AR Lab] Configurando escena y montando vista previa 3D...");
+                Debug.Log("[AR Lab] Configurando escena...");
                 BuildImageTargetLabScene();
             }
         }
@@ -474,13 +474,48 @@ namespace ARMobileLab.Editor
                 Vector2.zero, new Vector2(400f, 50f),
                 "Target Beta: 0 veces", 24, FontStyles.Bold, new Color(1.0f, 0.65f, 0.15f), font);
 
-            // --- 3. BOTÓN DE AYUDA (TOP-RIGHT) ---
+            // --- 3. BOTÓN DE CONEXIÓN WEBCAM (TOP-RIGHT) ---
+            GameObject webcamBtnGo = CreateUIButton(canvasGo.transform, "WebCamConnectButton",
+                new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(1f, 1f),
+                new Vector2(-220f, -90f), new Vector2(210f, 90f),
+                "📷 WebCam\n(iOS / PC)", 22, new Color(0.08f, 0.45f, 0.55f, 0.95f), font);
+
+            // --- 4. BOTÓN DE AYUDA (TOP-RIGHT) ---
             GameObject helpBtnGo = CreateUIButton(canvasGo.transform, "HelpOpenButton",
                 new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(1f, 1f),
                 new Vector2(-60f, -90f), new Vector2(90f, 90f),
                 "?", 44, new Color(0.20f, 0.28f, 0.38f, 0.95f), font);
 
-            // --- 4. BARRA INFERIOR DE CONTROLES 3D ---
+            // --- 5. BARRA DE SIMULACIÓN Y TEST EN EDITOR (BAJO EL HUD) ---
+            GameObject simToolbar = CreateUIPanel(canvasGo.transform, "SimulationToolbar",
+                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
+                new Vector2(0f, -370f), new Vector2(960f, 65f),
+                new Color(0.06f, 0.08f, 0.12f, 0.90f));
+
+            float simX = -360f;
+            float simStep = 240f;
+
+            GameObject btnSimAlpha = CreateUIButton(simToolbar.transform, "BtnSimAlpha",
+                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+                new Vector2(simX + (simStep * 0), 0f), new Vector2(220f, 52f),
+                "Target Alpha (1)", 20, new Color(0.05f, 0.48f, 0.55f), font);
+
+            GameObject btnSimBeta = CreateUIButton(simToolbar.transform, "BtnSimBeta",
+                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+                new Vector2(simX + (simStep * 1), 0f), new Vector2(220f, 52f),
+                "Target Beta (2)", 20, new Color(0.70f, 0.35f, 0.05f), font);
+
+            GameObject btnSimLost = CreateUIButton(simToolbar.transform, "BtnSimLost",
+                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+                new Vector2(simX + (simStep * 2), 0f), new Vector2(220f, 52f),
+                "Perder (3)", 20, new Color(0.70f, 0.15f, 0.15f), font);
+
+            GameObject btnDrag = CreateUIButton(simToolbar.transform, "BtnToggleDrag",
+                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+                new Vector2(simX + (simStep * 3), 0f), new Vector2(220f, 52f),
+                "Mover: OFF (M)", 20, new Color(0.20f, 0.25f, 0.35f), font);
+
+            // --- 6. BARRA INFERIOR DE CONTROLES 3D ---
             GameObject bottomBar = CreateUIPanel(canvasGo.transform, "BottomControlsBar",
                 new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f),
                 new Vector2(0f, 120f), new Vector2(1000f, 180f),
@@ -579,6 +614,22 @@ namespace ARMobileLab.Editor
             soUI.FindProperty("helpCloseButton").objectReferenceValue = closeBtnGo.GetComponent<Button>();
 
             soUI.ApplyModifiedProperties();
+
+            // Configurar ARWebCamTestManager
+            var webcamMgr = canvasGo.AddComponent<ARWebCamTestManager>();
+            SerializedObject soCam = new SerializedObject(webcamMgr);
+            soCam.FindProperty("targetManager").objectReferenceValue = multiManager;
+            soCam.FindProperty("arCamera").objectReferenceValue = Camera.main;
+            soCam.FindProperty("canvas").objectReferenceValue = canvas;
+            soCam.FindProperty("webcamToggleButton").objectReferenceValue = webcamBtnGo.GetComponent<Button>();
+            soCam.FindProperty("webcamButtonText").objectReferenceValue = webcamBtnGo.GetComponentInChildren<TMP_Text>();
+            soCam.FindProperty("simulationToolbar").objectReferenceValue = simToolbar;
+            soCam.FindProperty("btnSimulateAlpha").objectReferenceValue = btnSimAlpha.GetComponent<Button>();
+            soCam.FindProperty("btnSimulateBeta").objectReferenceValue = btnSimBeta.GetComponent<Button>();
+            soCam.FindProperty("btnSimulateLost").objectReferenceValue = btnSimLost.GetComponent<Button>();
+            soCam.FindProperty("btnToggleDrag").objectReferenceValue = btnDrag.GetComponent<Button>();
+            soCam.FindProperty("dragButtonText").objectReferenceValue = btnDrag.GetComponentInChildren<TMP_Text>();
+            soCam.ApplyModifiedProperties();
 
             return canvasGo;
         }
