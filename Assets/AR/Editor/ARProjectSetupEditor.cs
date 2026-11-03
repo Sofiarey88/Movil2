@@ -29,10 +29,10 @@ namespace ARMobileLab.Editor
 
         private static void AutoSetupIfNeeded()
         {
-            if (!System.IO.File.Exists(ScenePath) || !System.IO.File.Exists(LibraryPath))
+            if (GameObject.Find("[EDITOR_PREVIEW_TARGETS]") == null)
             {
-                Debug.Log("[AR Lab] Configuración inicial detectada. Ejecutando SetupEverything automáticamente...");
-                SetupEverything();
+                Debug.Log("[AR Lab] Configurando escena y montando vista previa 3D...");
+                BuildImageTargetLabScene();
             }
         }
 
@@ -402,7 +402,10 @@ namespace ARMobileLab.Editor
             soMulti.FindProperty("uiManager").objectReferenceValue = uiManager;
             soMulti.ApplyModifiedProperties();
 
-            // 7. Guardar Escena
+            // 7. Crear vista previa de los targets con sus objetos 3D visibles en la Escena
+            CreateOrRefreshEditorPreview();
+
+            // 8. Guardar Escena
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
 
@@ -490,12 +493,12 @@ namespace ARMobileLab.Editor
             GameObject btnRotL = CreateUIButton(bottomBar.transform, "BtnRotateLeft",
                 new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
                 new Vector2(startX + (stepX * 0), 0f), new Vector2(115f, 120f),
-                "↺\n-30°", 26, new Color(0.18f, 0.24f, 0.34f), font);
+                "<\n-30", 28, new Color(0.18f, 0.24f, 0.34f), font);
 
             GameObject btnRotR = CreateUIButton(bottomBar.transform, "BtnRotateRight",
                 new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
                 new Vector2(startX + (stepX * 1), 0f), new Vector2(115f, 120f),
-                "↻\n+30°", 26, new Color(0.18f, 0.24f, 0.34f), font);
+                ">\n+30", 28, new Color(0.18f, 0.24f, 0.34f), font);
 
             GameObject btnAutoRot = CreateUIButton(bottomBar.transform, "BtnToggleAutoRotate",
                 new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
@@ -505,22 +508,22 @@ namespace ARMobileLab.Editor
             GameObject btnScaleUp = CreateUIButton(bottomBar.transform, "BtnScaleUp",
                 new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
                 new Vector2(startX + (stepX * 3), 0f), new Vector2(115f, 120f),
-                "🔍\n+", 30, new Color(0.18f, 0.24f, 0.34f), font);
+                "Zoom\n+", 26, new Color(0.18f, 0.24f, 0.34f), font);
 
             GameObject btnScaleDown = CreateUIButton(bottomBar.transform, "BtnScaleDown",
                 new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
                 new Vector2(startX + (stepX * 4), 0f), new Vector2(115f, 120f),
-                "🔍\n-", 30, new Color(0.18f, 0.24f, 0.34f), font);
+                "Zoom\n-", 26, new Color(0.18f, 0.24f, 0.34f), font);
 
             GameObject btnColor = CreateUIButton(bottomBar.transform, "BtnCycleColor",
                 new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
                 new Vector2(startX + (stepX * 5), 0f), new Vector2(115f, 120f),
-                "🎨\nColor", 24, new Color(0.55f, 0.20f, 0.70f), font);
+                "Color\nModo", 24, new Color(0.55f, 0.20f, 0.70f), font);
 
             GameObject btnReset = CreateUIButton(bottomBar.transform, "BtnReset",
                 new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
                 new Vector2(startX + (stepX * 6), 0f), new Vector2(115f, 120f),
-                "⟲\nReset", 24, new Color(0.70f, 0.20f, 0.20f), font);
+                "Reset\nPose", 24, new Color(0.70f, 0.20f, 0.20f), font);
 
             // --- 5. PANEL MODAL DE AYUDA ---
             GameObject modalGo = CreateUIPanel(canvasGo.transform, "HelpModalPanel",
@@ -679,6 +682,92 @@ namespace ARMobileLab.Editor
             Debug.Log("[AR Lab] Iniciando configuración integral del prototipo AR...");
             BuildImageTargetLabScene();
             Debug.Log("[AR Lab] ★ ¡Configuración integral completada con éxito!");
+        }
+
+        [MenuItem("AR Lab/★ Alternar Vista Previa 3D en Escena (Toggle Preview)", false, 1)]
+        public static void ToggleEditorPreview()
+        {
+            const string previewRootName = "[EDITOR_PREVIEW_TARGETS]";
+            GameObject existing = GameObject.Find(previewRootName);
+
+            if (existing != null)
+            {
+                Undo.DestroyObjectImmediate(existing);
+                Debug.Log("[AR Lab] Vista previa de targets retirada de la escena.");
+                return;
+            }
+
+            CreateOrRefreshEditorPreview();
+        }
+
+        public static void CreateOrRefreshEditorPreview()
+        {
+            const string previewRootName = "[EDITOR_PREVIEW_TARGETS]";
+            GameObject existing = GameObject.Find(previewRootName);
+            if (existing != null)
+            {
+                GameObject.DestroyImmediate(existing);
+            }
+
+            GameObject previewRoot = new GameObject(previewRootName);
+            previewRoot.tag = "EditorOnly";
+
+            Texture2D texA = AssetDatabase.LoadAssetAtPath<Texture2D>($"{ImagesFolder}/Target_Alpha.png");
+            Texture2D texB = AssetDatabase.LoadAssetAtPath<Texture2D>($"{ImagesFolder}/Target_Beta.png");
+            GameObject prefabA = AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabsFolder}/Prefab_TargetA_CyberCore.prefab");
+            GameObject prefabB = AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabsFolder}/Prefab_TargetB_QuantumBeacon.prefab");
+
+            Shader unlitShader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Texture");
+
+            // Preview Target A (Cyber Core sobre papel de 15x15cm)
+            GameObject targetCardA = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            targetCardA.name = "Preview_Target_Alpha_Card";
+            targetCardA.transform.SetParent(previewRoot.transform, false);
+            targetCardA.transform.localPosition = new Vector3(-0.25f, 0f, 0.6f);
+            targetCardA.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            targetCardA.transform.localScale = new Vector3(0.15f, 0.15f, 0.15f);
+            RemoveCollider(targetCardA);
+            Material matA = new Material(unlitShader);
+            matA.mainTexture = texA;
+            if (matA.HasProperty("_BaseMap")) matA.SetTexture("_BaseMap", texA);
+            targetCardA.GetComponent<Renderer>().material = matA;
+
+            if (prefabA != null)
+            {
+                GameObject instA = (GameObject)PrefabUtility.InstantiatePrefab(prefabA, previewRoot.transform);
+                instA.transform.localPosition = new Vector3(-0.25f, 0f, 0.6f);
+                instA.transform.localRotation = Quaternion.identity;
+            }
+
+            // Preview Target B (Quantum Beacon sobre papel de 15x15cm)
+            GameObject targetCardB = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            targetCardB.name = "Preview_Target_Beta_Card";
+            targetCardB.transform.SetParent(previewRoot.transform, false);
+            targetCardB.transform.localPosition = new Vector3(0.25f, 0f, 0.6f);
+            targetCardB.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            targetCardB.transform.localScale = new Vector3(0.15f, 0.15f, 0.15f);
+            RemoveCollider(targetCardB);
+            Material matB = new Material(unlitShader);
+            matB.mainTexture = texB;
+            if (matB.HasProperty("_BaseMap")) matB.SetTexture("_BaseMap", texB);
+            targetCardB.GetComponent<Renderer>().material = matB;
+
+            if (prefabB != null)
+            {
+                GameObject instB = (GameObject)PrefabUtility.InstantiatePrefab(prefabB, previewRoot.transform);
+                instB.transform.localPosition = new Vector3(0.25f, 0f, 0.6f);
+                instB.transform.localRotation = Quaternion.identity;
+            }
+
+            Undo.RegisterCreatedObjectUndo(previewRoot, "Create AR Target Preview");
+            Selection.activeGameObject = previewRoot;
+
+            if (SceneView.lastActiveSceneView != null)
+            {
+                SceneView.lastActiveSceneView.FrameSelected();
+            }
+
+            Debug.Log("[AR Lab] ✓ Vista previa 3D de ambos targets montada en la escena.");
         }
 
         [MenuItem("AR Lab/★ Compilar APK Android Directo", false, 50)]
