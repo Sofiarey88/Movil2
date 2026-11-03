@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Targets de Realidad Aumentada - AR Image Tracking (UAI)</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 24px;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 24px;
+            max-width: 900px;
+        }
+        h1 { font-size: 26px; color: #38bdf8; margin-bottom: 8px; }
+        p { color: #94a3b8; font-size: 15px; line-height: 1.5; }
+        .instructions {
+            background: #1e293b;
+            border-left: 4px solid #38bdf8;
+            padding: 14px 20px;
+            border-radius: 8px;
+            margin-top: 14px;
+            text-align: left;
+            font-size: 14px;
+        }
+        .targets-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 32px;
+            justify-content: center;
+            max-width: 1200px;
+            margin-top: 16px;
+        }
+        .target-card {
+            background: #ffffff;
+            color: #0f172a;
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+            max-width: 480px;
+        }
+        .target-card h2 {
+            font-size: 20px;
+            margin-bottom: 6px;
+            color: #0284c7;
+        }
+        .target-card .badge {
+            display: inline-block;
+            background: #e0f2fe;
+            color: #0369a1;
+            font-weight: bold;
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+        }
+        .target-card img {
+            width: 100%;
+            max-width: 400px;
+            aspect-ratio: 1 / 1;
+            border: 2px solid #000;
+            border-radius: 6px;
+        }
+        .specs {
+            margin-top: 12px;
+            font-size: 13px;
+            color: #475569;
+            text-align: center;
+        }
+        .btn-print {
+            margin-top: 24px;
+            background: #0284c7;
+            color: white;
+            border: none;
+            padding: 12px 28px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-print:hover {
+            background: #0369a1;
+        }
+
+        @media print {
+            body { background: white; color: black; padding: 0; }
+            header, .instructions, .btn-print { display: none; }
+            .targets-container { gap: 20mm; page-break-inside: avoid; }
+            .target-card {
+                box-shadow: none;
+                border: 1px solid #ccc;
+                page-break-inside: avoid;
+                padding: 10mm;
+            }
+            .target-card img {
+                width: 150mm; /* Exact 15cm as configured in Unity */
+                height: 150mm;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Lámina de Marcadores AR (Image Tracking)</h1>
+        <p>Cátedra de Simulaciones — Prototipo Realidad Aumentada Móvil (Unity 6 + AR Foundation 6)</p>
+        <div class="instructions">
+            <strong>Instrucciones de uso:</strong><br>
+            • Puedes imprimir esta página o abrirla en la pantalla de una computadora/tablet.<br>
+            • Tamaño configurado en Unity: <strong>15 cm × 15 cm (0.15 m)</strong>.<br>
+            • Al enfocar con la aplicación móvil instalada en Android, cada target instanciará su respectivo modelo 3D interactivo con UI de estado y controles.
+        </div>
+        <button class="btn-print" onclick="window.print()">Imprimir Targets (15 × 15 cm)</button>
+    </header>
+
+    <div class="targets-container">
+        <!-- TARGET 1 -->
+        <div class="target-card">
+            <h2>Target Alpha</h2>
+            <div class="badge">Objeto 3D: Cyber Core</div>
+            <img src="Target_Alpha.png" alt="Target Alpha - Cyber Core">
+            <div class="specs">
+                <strong>Nombre en Unity:</strong> Target_Alpha<br>
+                <strong>Dimensiones:</strong> 15 cm × 15 cm (0.15 m)<br>
+                <strong>Características:</strong> Alto contraste, marcadores asimétricos, núcleo radial.
+            </div>
+        </div>
+
+        <!-- TARGET 2 -->
+        <div class="target-card">
+            <h2>Target Beta</h2>
+            <div class="badge">Objeto 3D: Quantum Beacon</div>
+            <img src="Target_Beta.png" alt="Target Beta - Quantum Beacon">
+            <div class="specs">
+                <strong>Nombre en Unity:</strong> Target_Beta<br>
+                <strong>Dimensiones:</strong> 15 cm × 15 cm (0.15 m)<br>
+                <strong>Características:</strong> Patrón hexagonal, rombos fiduciales, alta densidad de esquinas.
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
