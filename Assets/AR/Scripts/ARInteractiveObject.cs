@@ -41,6 +41,15 @@ namespace ARMobileLab
         public bool AutoRotate => autoRotate;
         public float CurrentScaleMultiplier => currentScaleMultiplier;
 
+        /// <summary>
+        /// Actualiza la posición base usada por la animación de flotación.
+        /// Llamar después de reposicionar el objeto en simulación.
+        /// </summary>
+        public void SetBasePosition(Vector3 newLocalPos)
+        {
+            initialLocalPosition = newLocalPos;
+        }
+
         private void Awake()
         {
             initialLocalPosition = transform.localPosition;

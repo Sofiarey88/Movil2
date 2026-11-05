@@ -69,6 +69,13 @@ namespace ARMobileLab
         {
             manager = GetComponent<ARTrackedImageManager>();
 
+            // Ocultar la vista previa estática del editor al entrar en Play Mode
+            var previewRoot = GameObject.Find("[EDITOR_PREVIEW_TARGETS]");
+            if (previewRoot != null)
+            {
+                previewRoot.SetActive(false);
+            }
+
             // Inicializar contadores en 0
             foreach (var mapping in targetMappings)
             {
@@ -337,8 +344,10 @@ namespace ARMobileLab
 
         public void SimulateTargetTracking(string imageName, Vector3 worldPosition)
         {
-            // Ocultar cualquier objeto simulado previo
-            if (activeSimulatedObject != null && activeSimulatedObject.name != imageName)
+            string expectedName = $"Simulated_{imageName}";
+
+            // Ocultar cualquier objeto simulado previo diferente
+            if (activeSimulatedObject != null && activeSimulatedObject.name != expectedName)
             {
                 activeSimulatedObject.SetActive(false);
             }
@@ -346,19 +355,35 @@ namespace ARMobileLab
             if (!simulatedInstances.TryGetValue(imageName, out GameObject simGo) || simGo == null)
             {
                 GameObject prefab = FindPrefabForImage(imageName);
-                if (prefab != null)
+                if (prefab == null)
                 {
-                    simGo = Instantiate(prefab);
-                    simGo.name = $"Simulated_{imageName}";
-                    simulatedInstances[imageName] = simGo;
+                    Debug.LogWarning($"[AR Sim] No se encontró prefab para '{imageName}'. Verificá targetMappings en el Inspector.");
+                    return;
                 }
+                simGo = Instantiate(prefab);
+                simGo.name = expectedName;
+                simulatedInstances[imageName] = simGo;
+                Debug.Log($"[AR Sim] Spawneado '{expectedName}' desde prefab '{prefab.name}'");
             }
 
             if (simGo != null)
             {
                 simGo.transform.position = worldPosition;
+                // Escala x3 para que los prefabs AR (~22cm) sean bien visibles en el Editor (~66cm)
+                simGo.transform.localScale = Vector3.one * 3.0f;
                 simGo.SetActive(true);
                 activeSimulatedObject = simGo;
+
+                // Actualizar la posición base del bobbing para que no lo teleporte a (0,0,0)
+                var interactive = simGo.GetComponent<ARInteractiveObject>();
+                if (interactive == null) interactive = simGo.GetComponentInChildren<ARInteractiveObject>();
+                if (interactive != null) interactive.SetBasePosition(simGo.transform.localPosition);
+
+                Debug.Log($"[AR Sim] '{expectedName}' activo en pos={worldPosition} escala=3.0");
+            }
+            else
+            {
+                Debug.LogError($"[AR Sim] simGo es null para '{imageName}' — el prefab no se instanció correctamente.");
             }
 
             currentTrackedTargetName = imageName;
@@ -391,6 +416,9 @@ namespace ARMobileLab
             if (activeSimulatedObject != null && activeSimulatedObject.activeInHierarchy)
             {
                 activeSimulatedObject.transform.position = newWorldPosition;
+                var interactive = activeSimulatedObject.GetComponent<ARInteractiveObject>();
+                if (interactive == null) interactive = activeSimulatedObject.GetComponentInChildren<ARInteractiveObject>();
+                if (interactive != null) interactive.SetBasePosition(activeSimulatedObject.transform.localPosition);
             }
         }
 

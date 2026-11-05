@@ -156,10 +156,22 @@ namespace ARMobileLab
             {
                 Vector2 mousePos = mouse.position.ReadValue();
                 Ray ray = arCamera.ScreenPointToRay(mousePos);
-                Vector3 newPos = ray.GetPoint(0.55f); // a 55 cm de la cámara
+                Vector3 newPos = ray.GetPoint(2.5f);
                 if (targetManager != null)
                 {
                     targetManager.UpdateSimulatedObjectPosition(newPos);
+                }
+            }
+            else if (mouse != null && mouse.leftButton.wasPressedThisFrame && arCamera != null)
+            {
+                // Clic en la pantalla para posicionar / spawnear el objeto en esa coordenada del video
+                if (UnityEngine.EventSystems.EventSystem.current == null || !UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject())
+                {
+                    Vector2 mousePos = mouse.position.ReadValue();
+                    Ray ray = arCamera.ScreenPointToRay(mousePos);
+                    Vector3 placePos = ray.GetPoint(2.5f);
+                    string targetToSpawn = string.IsNullOrEmpty(lastSimulatedTarget) ? "Target_Alpha" : lastSimulatedTarget;
+                    TriggerSimulation(targetToSpawn, placePos);
                 }
             }
             #endif
@@ -376,17 +388,30 @@ namespace ARMobileLab
         // SIMULADOR DE IMAGE TRACKING
         // ==========================================
 
-        public void TriggerSimulation(string targetName)
+        public void TriggerSimulation(string targetName, Vector3? customPos = null)
         {
             if (targetManager == null) return;
 
             lastSimulatedTarget = targetName;
 
-            Vector3 spawnPos = Vector3.forward * 0.55f;
-            if (arCamera != null)
+            Vector3 spawnPos;
+            if (customPos.HasValue)
             {
-                // Posicionar frente a la cámara en el centro de visión
-                spawnPos = arCamera.transform.position + (arCamera.transform.forward * 0.55f);
+                spawnPos = customPos.Value;
+            }
+            else
+            {
+                if (arCamera != null)
+                {
+                    // Spawnear a 2.5m frente a la cámara para que sea visible en el Editor
+                    spawnPos = arCamera.transform.position + (arCamera.transform.forward * 2.5f);
+                    Debug.Log($"[AR WebCam] Spawn en {spawnPos} (cámara: {arCamera.transform.position}, forward: {arCamera.transform.forward})");
+                }
+                else
+                {
+                    spawnPos = new Vector3(0f, 0f, 2.5f);
+                    Debug.LogWarning("[AR WebCam] arCamera es null — usando posición de fallback (0,0,2.5)");
+                }
             }
 
             targetManager.SimulateTargetTracking(targetName, spawnPos);

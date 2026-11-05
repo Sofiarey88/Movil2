@@ -142,8 +142,8 @@ namespace ARMobileLab.Editor
             GameObject pedestalA = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             pedestalA.name = "PedestalBase";
             pedestalA.transform.SetParent(rootA.transform, false);
-            pedestalA.transform.localPosition = new Vector3(0f, 0.003f, 0f);
-            pedestalA.transform.localScale = new Vector3(0.11f, 0.004f, 0.11f);
+            pedestalA.transform.localPosition = new Vector3(0f, 0.005f, 0f);
+            pedestalA.transform.localScale = new Vector3(0.20f, 0.008f, 0.20f);
             pedestalA.GetComponent<Renderer>().sharedMaterial = matDarkMetal;
             RemoveCollider(pedestalA);
 
@@ -151,8 +151,8 @@ namespace ARMobileLab.Editor
             GameObject ringBase = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             ringBase.name = "GoldRingBase";
             ringBase.transform.SetParent(rootA.transform, false);
-            ringBase.transform.localPosition = new Vector3(0f, 0.007f, 0f);
-            ringBase.transform.localScale = new Vector3(0.085f, 0.003f, 0.085f);
+            ringBase.transform.localPosition = new Vector3(0f, 0.014f, 0f);
+            ringBase.transform.localScale = new Vector3(0.16f, 0.006f, 0.16f);
             ringBase.GetComponent<Renderer>().sharedMaterial = matGold;
             RemoveCollider(ringBase);
 
@@ -160,8 +160,8 @@ namespace ARMobileLab.Editor
             GameObject orb = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             orb.name = "EnergyOrb";
             orb.transform.SetParent(rootA.transform, false);
-            orb.transform.localPosition = new Vector3(0f, 0.050f, 0f);
-            orb.transform.localScale = new Vector3(0.045f, 0.045f, 0.045f);
+            orb.transform.localPosition = new Vector3(0f, 0.10f, 0f);
+            orb.transform.localScale = new Vector3(0.09f, 0.09f, 0.09f);
             orb.GetComponent<Renderer>().sharedMaterial = matCyan;
             RemoveCollider(orb);
 
@@ -169,9 +169,9 @@ namespace ARMobileLab.Editor
             GameObject orbitRing = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             orbitRing.name = "OrbitRing";
             orbitRing.transform.SetParent(rootA.transform, false);
-            orbitRing.transform.localPosition = new Vector3(0f, 0.050f, 0f);
+            orbitRing.transform.localPosition = new Vector3(0f, 0.10f, 0f);
             orbitRing.transform.localRotation = Quaternion.Euler(30f, 25f, 15f);
-            orbitRing.transform.localScale = new Vector3(0.075f, 0.002f, 0.075f);
+            orbitRing.transform.localScale = new Vector3(0.15f, 0.004f, 0.15f);
             orbitRing.GetComponent<Renderer>().sharedMaterial = matCyan;
             RemoveCollider(orbitRing);
 
@@ -182,9 +182,9 @@ namespace ARMobileLab.Editor
                 GameObject sat = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 sat.name = $"Satellite_{i}";
                 sat.transform.SetParent(rootA.transform, false);
-                sat.transform.localPosition = new Vector3(Mathf.Cos(angle) * 0.048f, 0.050f, Mathf.Sin(angle) * 0.048f);
+                sat.transform.localPosition = new Vector3(Mathf.Cos(angle) * 0.10f, 0.10f, Mathf.Sin(angle) * 0.10f);
                 sat.transform.localRotation = Quaternion.Euler(45f, 45f, 45f);
-                sat.transform.localScale = new Vector3(0.012f, 0.012f, 0.012f);
+                sat.transform.localScale = new Vector3(0.025f, 0.025f, 0.025f);
                 sat.GetComponent<Renderer>().sharedMaterial = matGold;
                 RemoveCollider(sat);
             }
@@ -201,8 +201,8 @@ namespace ARMobileLab.Editor
             GameObject pedestalB = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             pedestalB.name = "BasePlatform";
             pedestalB.transform.SetParent(rootB.transform, false);
-            pedestalB.transform.localPosition = new Vector3(0f, 0.004f, 0f);
-            pedestalB.transform.localScale = new Vector3(0.10f, 0.006f, 0.10f);
+            pedestalB.transform.localPosition = new Vector3(0f, 0.008f, 0f);
+            pedestalB.transform.localScale = new Vector3(0.20f, 0.012f, 0.20f);
             pedestalB.GetComponent<Renderer>().sharedMaterial = matDarkMetal;
             RemoveCollider(pedestalB);
 
@@ -210,9 +210,9 @@ namespace ARMobileLab.Editor
             GameObject outerRim = GameObject.CreatePrimitive(PrimitiveType.Cube);
             outerRim.name = "OuterRim";
             outerRim.transform.SetParent(rootB.transform, false);
-            outerRim.transform.localPosition = new Vector3(0f, 0.008f, 0f);
+            outerRim.transform.localPosition = new Vector3(0f, 0.016f, 0f);
             outerRim.transform.localRotation = Quaternion.Euler(0f, 45f, 0f);
-            outerRim.transform.localScale = new Vector3(0.075f, 0.004f, 0.075f);
+            outerRim.transform.localScale = new Vector3(0.15f, 0.008f, 0.15f);
             outerRim.GetComponent<Renderer>().sharedMaterial = matGold;
             RemoveCollider(outerRim);
 
@@ -220,9 +220,9 @@ namespace ARMobileLab.Editor
             GameObject spire = GameObject.CreatePrimitive(PrimitiveType.Cube);
             spire.name = "QuantumSpire";
             spire.transform.SetParent(rootB.transform, false);
-            spire.transform.localPosition = new Vector3(0f, 0.055f, 0f);
+            spire.transform.localPosition = new Vector3(0f, 0.11f, 0f);
             spire.transform.localRotation = Quaternion.Euler(0f, 45f, 0f);
-            spire.transform.localScale = new Vector3(0.035f, 0.085f, 0.035f);
+            spire.transform.localScale = new Vector3(0.07f, 0.18f, 0.07f);
             spire.GetComponent<Renderer>().sharedMaterial = matOrange;
             RemoveCollider(spire);
 
@@ -233,9 +233,9 @@ namespace ARMobileLab.Editor
                 GameObject shard = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 shard.name = $"QuantumShard_{k}";
                 shard.transform.SetParent(rootB.transform, false);
-                shard.transform.localPosition = new Vector3(Mathf.Cos(angle) * 0.042f, 0.055f + (k % 2 == 0 ? 0.015f : -0.015f), Mathf.Sin(angle) * 0.042f);
+                shard.transform.localPosition = new Vector3(Mathf.Cos(angle) * 0.085f, 0.11f + (k % 2 == 0 ? 0.03f : -0.03f), Mathf.Sin(angle) * 0.085f);
                 shard.transform.localRotation = Quaternion.Euler(30f * k, 45f + (k * 20f), 15f);
-                shard.transform.localScale = new Vector3(0.014f, 0.024f, 0.014f);
+                shard.transform.localScale = new Vector3(0.028f, 0.05f, 0.028f);
                 shard.GetComponent<Renderer>().sharedMaterial = (k % 2 == 0) ? matGold : matOrange;
                 RemoveCollider(shard);
             }
@@ -244,9 +244,9 @@ namespace ARMobileLab.Editor
             GameObject crown = GameObject.CreatePrimitive(PrimitiveType.Cube);
             crown.name = "CrownApex";
             crown.transform.SetParent(rootB.transform, false);
-            crown.transform.localPosition = new Vector3(0f, 0.110f, 0f);
+            crown.transform.localPosition = new Vector3(0f, 0.22f, 0f);
             crown.transform.localRotation = Quaternion.Euler(45f, 45f, 45f);
-            crown.transform.localScale = new Vector3(0.022f, 0.022f, 0.022f);
+            crown.transform.localScale = new Vector3(0.045f, 0.045f, 0.045f);
             crown.GetComponent<Renderer>().sharedMaterial = matOrange;
             RemoveCollider(crown);
 
